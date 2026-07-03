@@ -16,7 +16,7 @@ import { catalogBusinesses, catalogServices } from './seed/catalog.js';
 
 const app = express();
 const port = process.env.PORT || 5000;
-const host = process.env.HOST || '127.0.0.1';
+// const host = process.env.HOST || '127.0.0.1';
 
 app.use(helmet());
 const allowedOrigins = new Set([
@@ -142,7 +142,7 @@ async function start() {
     try {
       // Mongoose 8.x connection configuration with proper pool settings
       mongoose.set('bufferCommands', false); // Don't buffer commands when disconnected - fail fast
-      
+
       await mongoose.connect(process.env.MONGO_URI, {
         // Connection pool settings
         maxPoolSize: 10,          // Maximum number of connections in the pool
@@ -151,38 +151,38 @@ async function start() {
         serverSelectionTimeoutMS: 8000, // Timeout for server selection (down from 10000)
         socketTimeoutMS: 30000,   // Socket timeout for operations (down from 45000)
         heartbeatFrequencyMS: 10000, // Check connection health every 10s
-        
+
         // Connection retry settings
         retryWrites: true,
         retryReads: false,         // Don't retry reads to avoid stale data
-        
+
         // TLS settings
         tlsAllowInvalidCertificates: !!process.env.MONGO_ALLOW_INVALID_TLS,
         tlsAllowInvalidHostnames: !!process.env.MONGO_ALLOW_INVALID_TLS,
       });
-      
+
       mongoEnabled = true;
       console.log('MongoDB connected successfully');
-      
+
       // Set up connection event handlers for resilience
       mongoose.connection.on('disconnected', () => {
         console.warn('MongoDB disconnected. Operations will fall back to in-memory store.');
         mongoEnabled = false;
       });
-      
+
       mongoose.connection.on('reconnected', () => {
         console.log('MongoDB reconnected. Resuming database operations.');
         mongoEnabled = true;
       });
-      
+
       mongoose.connection.on('error', (err) => {
         console.error('MongoDB connection error:', err.message);
         mongoEnabled = false;
       });
-      
+
       // Migrate catalog businesses + services to MongoDB
       await migrateBuiltInCatalog();
-      
+
       // Ensure default admin account exists in MongoDB
       try {
         const defaultAdminEmail = 'nikhil@admin.com';
@@ -203,7 +203,7 @@ async function start() {
       } catch (seedError) {
         console.error('[Seed] Error ensuring admin account:', seedError.message);
       }
-      
+
       // Ensure all seed users with passwordHash preserved in MongoDB
       try {
         const seedUsers = db.users.filter(u => u.passwordHash);
@@ -230,12 +230,12 @@ async function start() {
       } catch (seedError) {
         console.error('[Seed] Error ensuring seed user passwords:', seedError.message);
       }
-      
+
       // Sync all in-memory data to MongoDB (includes all seed data)
       const [mongoUsers, mongoBusinesses, mongoLeads, mongoListings] = await Promise.all([
         User.find().lean(), Business.find().lean(), Lead.find().lean(), Listing.find().lean()
       ]);
-      
+
       if (mongoUsers.length > 0 || mongoBusinesses.length > 0 || mongoLeads.length > 0 || mongoListings.length > 0) {
         // Load existing MongoDB data into in-memory store
         if (mongoUsers.length) db.users.splice(0, db.users.length, ...mongoUsers.map(cleanDocument));
@@ -257,14 +257,17 @@ async function start() {
     console.log('MongoDB not configured; using seeded in-memory data store');
   }
 
-  const server = app.listen(port, host, () => console.log(`API running on http://${host}:${port}`));
+  const server = app.listen(port, () => {
+    console.log(`API running on port ${port}`);
+  });
+
   console.log('[API routes] Registered delete account route: DELETE /api/auth/delete-account');
+
   server.on('error', (error) => {
-    console.error(`Unable to start API on http://${host}:${port}: ${error.message}`);
+    console.error(`Unable to start API on port ${port}: ${error.message}`);
     process.exit(1);
   });
 }
-
 start().catch((error) => {
   console.error('Failed to start server', error);
   process.exit(1);
