@@ -20,7 +20,7 @@ function buildMissingConfigMessage() {
   const missing = [];
   if (!hasEmailUser()) missing.push('EMAIL_USER');
   if (!hasEmailPassword()) missing.push('EMAIL_APP_PASSWORD');
-  return `Missing Gmail SMTP configuration: ${missing.join(', ')}`;
+  return `Missing SMTP configuration: ${missing.join(', ')}`;
 }
 
 function assertEmailConfiguration() {
@@ -28,8 +28,10 @@ function assertEmailConfiguration() {
     return { mode: 'demo' };
   }
 
-  if (provider() !== 'gmail') {
-    throw new Error(`Unsupported EMAIL_PROVIDER="${process.env.EMAIL_PROVIDER}". Set EMAIL_PROVIDER=gmail or OTP_MODE=demo.`);
+  if (provider() !== 'gmail' && provider() !== 'brevo') {
+    throw new Error(
+      `Unsupported EMAIL_PROVIDER="${process.env.EMAIL_PROVIDER}". Supported providers: gmail, brevo`
+    );
   }
 
   if (!hasEmailUser() || !hasEmailPassword()) {
@@ -56,23 +58,33 @@ export async function initializeEmailService() {
     return { configured: false, mode: 'demo' };
   }
 
-  console.log('✓ selected email provider = gmail');
-  console.log('✓ creating Gmail SMTP transporter');
+  console.log(`✓ selected email provider = ${provider()}`);
 
-  transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    family: 4,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_APP_PASSWORD
-    }
-  });
+  if (provider() === 'brevo') {
+    console.log('✓ creating Brevo SMTP transporter');
+
+    transporter = nodemailer.createTransport({
+      host: 'smtp-relay.brevo.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_APP_PASSWORD
+      }
+    });
+  } else {
+    console.log('✓ creating Gmail SMTP transporter');
+
+    transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_APP_PASSWORD
+      }
+    });
+  }
 
   console.log('✓ transporter created');
 
@@ -80,7 +92,7 @@ export async function initializeEmailService() {
     await transporter.verify();
     emailConfigured = true;
     console.log('✓ transporter verified');
-    console.log('✓ Gmail SMTP authenticated');
+    console.log(`✓ ${provider()} SMTP authenticated`);
     console.log('✓ OTP email service ready');
     console.log('SMTP configured successfully');
     return { configured: true, mode: 'email' };
@@ -88,7 +100,7 @@ export async function initializeEmailService() {
     emailConfigured = false;
     emailInitializationError = error;
 
-    console.error('✗ Gmail SMTP authentication failed');
+    console.error(`✗ ${provider()} SMTP authentication failed`);
     console.error('SMTP configuration error:', {
       name: error.name,
       code: error.code,
