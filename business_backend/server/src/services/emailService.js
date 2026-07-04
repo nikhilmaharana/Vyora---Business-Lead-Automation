@@ -65,7 +65,7 @@ export async function initializeEmailService() {
 
     transporter = nodemailer.createTransport({
       host: 'smtp-relay.brevo.com',
-      port: 587,
+      port: 2525,
       secure: false,
       requireTLS: true,
       connectionTimeout: 30000,
@@ -93,6 +93,13 @@ export async function initializeEmailService() {
   console.log('✓ transporter created');
 
   try {
+    console.log('Testing SMTP connection...');
+    console.log({
+      host: 'smtp-relay.brevo.com',
+      port: 2525,
+      user: process.env.EMAIL_USER
+    });
+
     await transporter.verify();
     emailConfigured = true;
     console.log('✓ transporter verified');
