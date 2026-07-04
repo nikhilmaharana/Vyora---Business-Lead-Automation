@@ -67,6 +67,10 @@ export async function initializeEmailService() {
       host: 'smtp-relay.brevo.com',
       port: 587,
       secure: false,
+      requireTLS: true,
+      connectionTimeout: 30000,
+      greetingTimeout: 30000,
+      socketTimeout: 30000,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_APP_PASSWORD
