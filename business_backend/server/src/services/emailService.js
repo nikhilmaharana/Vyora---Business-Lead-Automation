@@ -217,7 +217,7 @@ export async function sendOTPEmail(to, name, otp, expiresInMinutes = 5) {
     }
 
     const mailOptions = {
-      from: `"Vyora Team" <${process.env.EMAIL_USER}>`,
+      from: `"Vyora Team" <${process.env.EMAIL_FROM}>`,
       to,
       subject: 'Verify your email - Vyora OTP',
       html: getEmailTemplate(name, otp, expiresInMinutes)
