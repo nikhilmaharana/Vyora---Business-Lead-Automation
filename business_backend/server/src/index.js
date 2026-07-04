@@ -20,20 +20,36 @@ const port = process.env.PORT || 5000;
 const host = '0.0.0.0';
 
 app.use(helmet());
-const allowedOrigins = new Set([
-  process.env.CLIENT_URL || 'http://localhost:5173',
+const allowedOrigins = [
+  process.env.CLIENT_URL,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:5174',
-  'http://127.0.0.1:5174'
-]);
+  'http://127.0.0.1:5174',
+  'https://vyora-business-lead-automation.vercel.app'
+].filter(Boolean);
+
+console.log('Allowed CORS origins:', allowedOrigins);
 app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+  origin: function (origin, callback) {
+    console.log('Incoming Origin:', origin);
+
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    console.log('Blocked Origin:', origin);
     return callback(new Error(`Origin ${origin} is not allowed by CORS`));
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.options('*', cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 500 }));
