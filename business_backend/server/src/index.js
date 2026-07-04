@@ -16,7 +16,8 @@ import { catalogBusinesses, catalogServices } from './seed/catalog.js';
 
 const app = express();
 const port = process.env.PORT || 5000;
-const host = process.env.HOST || '127.0.0.1';
+// const host = process.env.HOST || '127.0.0.1';
+const host = '0.0.0.0';
 
 app.use(helmet());
 const allowedOrigins = new Set([
@@ -86,7 +87,13 @@ async function migrateBuiltInCatalog() {
 
 app.use((req, res, next) => {
   res.on('finish', () => {
-    if (!mongoEnabled || req.method === 'GET' || res.statusCode >= 400) return;
+    // if (!mongoEnabled || req.method === 'GET' || res.statusCode >= 400) return;
+    if (
+      !mongoEnabled ||
+      req.method === 'GET' ||
+      req.method === 'HEAD' ||
+      res.statusCode >= 400
+    ) return;
     syncQueue = syncQueue
       .then(() => {
         console.log('[MongoDB sync] Starting post-write sync', {
@@ -263,10 +270,14 @@ async function start() {
     console.log('MongoDB not configured; using seeded in-memory data store');
   }
 
-  const server = app.listen(port, host, () => console.log(`API running on http://${host}:${port}`));
+  const server = app.listen(port, () => {
+    console.log(`API running on port ${port}`);
+  });
+
   console.log('[API routes] Registered delete account route: DELETE /api/auth/delete-account');
+
   server.on('error', (error) => {
-    console.error(`Unable to start API on http://${host}:${port}: ${error.message}`);
+    console.error(`Unable to start API on port ${port}: ${error.message}`);
     process.exit(1);
   });
 }
