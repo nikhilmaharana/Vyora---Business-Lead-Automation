@@ -16,7 +16,7 @@ import { catalogBusinesses, catalogServices } from './seed/catalog.js';
 
 const app = express();
 const port = process.env.PORT || 5000;
-// const host = process.env.HOST || '127.0.0.1';
+const host = process.env.HOST || '127.0.0.1';
 
 app.use(helmet());
 const allowedOrigins = new Set([
@@ -105,6 +105,12 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Vyora Business Lead Automation API is running'
+  });
+});
 app.use('/api', apiRoutes);
 
 app.use('/api', (req, res) => {
@@ -257,17 +263,14 @@ async function start() {
     console.log('MongoDB not configured; using seeded in-memory data store');
   }
 
-  const server = app.listen(port, () => {
-    console.log(`API running on port ${port}`);
-  });
-
+  const server = app.listen(port, host, () => console.log(`API running on http://${host}:${port}`));
   console.log('[API routes] Registered delete account route: DELETE /api/auth/delete-account');
-
   server.on('error', (error) => {
-    console.error(`Unable to start API on port ${port}: ${error.message}`);
+    console.error(`Unable to start API on http://${host}:${port}: ${error.message}`);
     process.exit(1);
   });
 }
+
 start().catch((error) => {
   console.error('Failed to start server', error);
   process.exit(1);
